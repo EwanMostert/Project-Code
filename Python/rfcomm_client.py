@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 server_sock=socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-server_sock.connect((socket.BDADDR_ANY,4))
+server_sock.connect(("34:F3:9A:CA:76:E0",4))
 server_sock.send("hello from client".encode())
     
 
