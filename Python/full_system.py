@@ -4,6 +4,7 @@ import random
 import socket, select
 import os
 import time
+import serial
 
 from pathlib import Path
 from picamera2 import *
@@ -19,10 +20,10 @@ server_sock.connect((port,10))
 
 
 #motor control setup
-motor1_fwd = 12
-motor1_rev = 13
-motor2_fwd = 14
-motor2_rev = 15
+motor1_fwd = 22
+motor1_rev = 24
+motor2_fwd = 26
+motor2_rev = 28
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
@@ -52,6 +53,24 @@ last_image_sent = 0
 img_name = ""
 image = ""
 #------------------------------------------------
+
+
+#positional data init
+angle = 0
+spd_x = 0
+spd_y = 0
+pos_x = 0
+pos_y = 0
+#------------------------------------------------
+
+
+#UART pins setup
+uart_tx = 8
+uart_rx = 10
+ser = serial.Serial('/dev/ttyAMA10', 9600)
+rec_data = ser.read()
+#------------------------------------------------
+
 
 #function for taking photo
 def take_photo():
@@ -109,3 +128,7 @@ def send_photo():
 #------------------------------------------------
 
 
+#function to get position from GPS
+def get_pos():
+    rec_data = ser.read()
+#------------------------------------------------
