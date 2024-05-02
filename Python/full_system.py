@@ -89,19 +89,30 @@ except:
 
 
 #GPS test
-for i in range(100):    
+count = 0
+time_1 = 0
+time_2 = 0
+on_time = False
+for i in range(100):        
     dataout = pynmea2.NMEAStreamReader()
-    try:
+    try:                        
         newdata = ser.readline().decode()
+        if newdata[0:10].__contains__("$GPRMC"):
+            if on_time == False:
+                time_1 = time.time()
+                on_time = True
+            else:
+                time_2 = time.time()
+                on_time = False    
+            newmsg = pynmea2.parse(newdata)
+            lat = newmsg.latitude
+            lng = newmsg.longitude
+            gps = "Latitude=" + str(lat) + " and Longitude=" + str(lng)
+            print(gps)
+            count += 1
     except:
-        print("Could not read from serial channel")    
-
-    if newdata[0:10].__contains__("$GPRMC"):
-        newmsg = pynmea2.parse(newdata)
-        lat = newmsg.latitude
-        lng = newmsg.longitude
-        gps = "Latitude=" + str(lat) + " and Longitude=" + str(lng)
-        print(gps)
+        print("Could not read from serial channel")
+    print(time_2 - time_1)
 #------------------------------------------------
 
 
@@ -195,9 +206,10 @@ def get_pos():
 
 #Calculate heading and speed:
 def get_angle():
-
+    return
 
 def get_speed():
+    return
 
 #------------------------------------------------
 
