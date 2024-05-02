@@ -5,45 +5,48 @@ import socket, select
 import os
 import time
 import serial
+import string
+import pynmea2
 
+from gps import *
 from pathlib import Path
 from picamera2 import *
 #------------------------------------------------
 
 
 #network setup
-port = "34:F3:9A:CA:76:E0"
+# port = "34:F3:9A:CA:76:E0"
 
-server_sock=socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-server_sock.connect((port,10))
+# server_sock=socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+# server_sock.connect((port,10))
 #------------------------------------------------
 
 
 #motor control setup
-motor1_fwd = 22
-motor1_rev = 24
-motor2_fwd = 26
-motor2_rev = 28
+# motor1_fwd = 22
+# motor1_rev = 24
+# motor2_fwd = 26
+# motor2_rev = 28
 
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
+# GPIO.setwarnings(False)
+# GPIO.setmode(GPIO.BOARD)
 
-GPIO.setup(motor1_fwd,GPIO.OUT)
-motor1_fwd_pwm = GPIO.PWM(motor1_fwd,10000)
-GPIO.setup(motor1_rev,GPIO.OUT)
-motor1_rev_pwm = GPIO.PWM(motor1_rev,10000)
+# GPIO.setup(motor1_fwd,GPIO.OUT)
+# motor1_fwd_pwm = GPIO.PWM(motor1_fwd,10000)
+# GPIO.setup(motor1_rev,GPIO.OUT)
+# motor1_rev_pwm = GPIO.PWM(motor1_rev,10000)
 
-GPIO.setup(motor2_fwd,GPIO.OUT)
-motor2_fwd_pwm = GPIO.PWM(motor2_fwd,10000)
-GPIO.setup(motor2_rev,GPIO.OUT)
-motor2_rev_pwm = GPIO.PWM(motor2_rev,10000)
+# GPIO.setup(motor2_fwd,GPIO.OUT)
+# motor2_fwd_pwm = GPIO.PWM(motor2_fwd,10000)
+# GPIO.setup(motor2_rev,GPIO.OUT)
+# motor2_rev_pwm = GPIO.PWM(motor2_rev,10000)
 #------------------------------------------------
 
 
 #camera setup
-picam2 = Picamera2()
-camera_config = picam2.create_preview_configuration()
-picam2.configure(camera_config)
+# picam2 = Picamera2()
+# camera_config = picam2.create_preview_configuration()
+# picam2.configure(camera_config)
 #------------------------------------------------
 
 
@@ -63,12 +66,44 @@ pos_x = 0
 pos_y = 0
 #------------------------------------------------
 
+def formatDegreesMinutes(coordinates, digits):
+    parts = coordinates.split(".")
+    if (len(parts) != 2):
+        return coordinates
+    if (digits > 3 or digits < 2):
+        return coordinates
+    
+    left = parts[0]
+    right = parts[1]
+    degrees = str(left[:digits])
+    minutes = str(right[:3])
+    
+    return (degrees + "." + minutes)
 
 #UART pins setup
 uart_tx = 8
 uart_rx = 10
-ser = serial.Serial('/dev/ttyAMA10', 9600)
-rec_data = ser.read()
+ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
+for i in range(100):    
+    dataout = pynmea2.NMEAStreamReader()
+    newdata = ser.readline().decode()
+
+    if newdata[0:10].__contains__("$GPRMC"):
+        newmsg = pynmea2.parse(newdata)
+        lat = newmsg.latitude
+        lng = newmsg.longitude
+        gps = "Latitude=" + str(lat) + " and Longitude=" + str(lng)
+        print(gps)
+    # data = ser.readline()
+    # message = data[0:6]
+    
+    # parts = data.decode().split(",")
+    # if parts[2] == 'V':
+    #     print("GPS receiver warning")
+    # else:
+    #     long = formatDegreesMinutes(parts[5], 3) 
+    #     lat = formatDegreesMinutes(parts[3], 2)
+    #     print("lon = " + str(long) + ", lat = " + str(lat))
 #------------------------------------------------
 
 
