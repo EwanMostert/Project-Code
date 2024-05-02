@@ -14,6 +14,12 @@ from picamera2 import *
 #------------------------------------------------
 
 
+#System setup:
+running = True
+start_time = time.time()
+#------------------------------------------------
+
+
 #network setup
 # port = "34:F3:9A:CA:76:E0"
 
@@ -59,34 +65,36 @@ image = ""
 
 
 #positional data init
+pos_x = 0
+pos_y = 0
 angle = 0
 spd_x = 0
 spd_y = 0
-pos_x = 0
-pos_y = 0
+
+#NOTE: Latitude will be pos_y and longitude will be pos_x. Speed and angle will be calculated from changes in position.
 #------------------------------------------------
 
-def formatDegreesMinutes(coordinates, digits):
-    parts = coordinates.split(".")
-    if (len(parts) != 2):
-        return coordinates
-    if (digits > 3 or digits < 2):
-        return coordinates
-    
-    left = parts[0]
-    right = parts[1]
-    degrees = str(left[:digits])
-    minutes = str(right[:3])
-    
-    return (degrees + "." + minutes)
 
-#UART pins setup
+#UART setup
 uart_tx = 8
 uart_rx = 10
-ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
+uart_connected = False
+try:
+    ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
+    dataout = pynmea2.NMEAStreamReader()
+    uart_connected = True
+except:
+    print("Could not establish serial connection")    
+#------------------------------------------------
+
+
+#GPS test
 for i in range(100):    
     dataout = pynmea2.NMEAStreamReader()
-    newdata = ser.readline().decode()
+    try:
+        newdata = ser.readline().decode()
+    except:
+        print("Could not read from serial channel")    
 
     if newdata[0:10].__contains__("$GPRMC"):
         newmsg = pynmea2.parse(newdata)
@@ -94,16 +102,6 @@ for i in range(100):
         lng = newmsg.longitude
         gps = "Latitude=" + str(lat) + " and Longitude=" + str(lng)
         print(gps)
-    # data = ser.readline()
-    # message = data[0:6]
-    
-    # parts = data.decode().split(",")
-    # if parts[2] == 'V':
-    #     print("GPS receiver warning")
-    # else:
-    #     long = formatDegreesMinutes(parts[5], 3) 
-    #     lat = formatDegreesMinutes(parts[3], 2)
-    #     print("lon = " + str(long) + ", lat = " + str(lat))
 #------------------------------------------------
 
 
@@ -160,10 +158,51 @@ def send_photo():
 
     finally:
         server_sock.close()
+
+#BLUETOOTH PROTOCOL:
+#After initial connection of the socket, the communication protocol between server (PC) and client (RPi) will be as follows:
+#Client will request to send data
+#Server will acknowledge request
+#Client will begin sending image
+#Server will begin receiving image
 #------------------------------------------------
 
 
 #function to get position from GPS
 def get_pos():
-    rec_data = ser.read()
+    if uart_connected == False:
+        try:
+            ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
+            dataout = pynmea2.NMEAStreamReader()
+            uart_connected = True
+        except:
+            print("Could not establish serial connection") 
+            return 
+    try:
+        newdata = ser.readline().decode()
+    except:
+        print("Could not read from serial channel")
+        return
+
+    if newdata[0:10].__contains__("$GPRMC"):
+        newmsg = pynmea2.parse(newdata)
+        pos_y = newmsg.latitude
+        pos_x = newmsg.longitude
+        gps = "Latitude =" + str(pos_y) + " and Longitude =" + str(pos_x)
+        print(gps)
+#------------------------------------------------
+
+
+#Calculate heading and speed:
+def get_angle():
+
+
+def get_speed():
+
+#------------------------------------------------
+
+
+#Main system loop:
+    while running == True:
+        get_pos()
 #------------------------------------------------
