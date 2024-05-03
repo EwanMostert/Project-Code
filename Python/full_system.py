@@ -7,6 +7,7 @@ import time
 import serial
 import string
 import pynmea2
+from math import *
 
 from gps import *
 from pathlib import Path
@@ -33,6 +34,10 @@ start_time = time.time()
 # motor1_rev = 24
 # motor2_fwd = 26
 # motor2_rev = 28
+
+#D = 0
+#d_1 = 0
+#d_2 = 0
 
 # GPIO.setwarnings(False)
 # GPIO.setmode(GPIO.BOARD)
@@ -65,11 +70,27 @@ image = ""
 
 
 #positional data init
-pos_x = 0
-pos_y = 0
-angle = 0
-spd_x = 0
-spd_y = 0
+pos_x_new = 0
+pos_y_new = 0
+pos_x_old = 0
+pos_y_old = 0
+pos_change = 0
+
+start_x = 0
+start_y = 0
+
+goal_x = 0
+goal_y = 0
+goal_angle = 0
+
+speed = 0
+angle = 90
+
+angle_err = 0
+distance_err = 0
+
+time_new = 0
+time_old = 0
 
 #NOTE: Latitude will be pos_y and longitude will be pos_x. Speed and angle will be calculated from changes in position.
 #------------------------------------------------
@@ -197,18 +218,43 @@ def get_pos():
 
     if newdata[0:10].__contains__("$GPRMC"):
         newmsg = pynmea2.parse(newdata)
-        pos_y = newmsg.latitude
-        pos_x = newmsg.longitude
-        gps = "Latitude =" + str(pos_y) + " and Longitude =" + str(pos_x)
+        pos_x_old = pos_x_new
+        pos_y_old = pos_y_new
+        pos_y_new = newmsg.latitude
+        pos_x_new = newmsg.longitude
+        gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
         print(gps)
 #------------------------------------------------
 
 
-#Calculate heading and speed:
-def get_angle():
-    return
+#Calculate heading and speed and distance:
+def get_distance():
+    angle_x = pos_x_new - pos_x_old
+    angle_y = pos_y_new - pos_y_old
+    angle_change = radians(sqrt(pow(angle_x,2) + pow(angle_y,2)))
+    result = angle_change * 6371 * 1000
+    return result
 
 def get_speed():
+    speed = pos_change / (time_new - time_old)
+
+def get_angle():
+    angle = degrees(atan((pos_x_new - pos_x_old)/(pos_y_new - pos_y_old)))
+
+def get_error():
+    return
+
+#------------------------------------------------
+
+
+#Actuation functions:
+def set_motorspeed():
+    return
+
+def set_motordirection():
+    return
+
+def rotate(angle):
     return
 
 #------------------------------------------------
@@ -217,4 +263,8 @@ def get_speed():
 #Main system loop:
     while running == True:
         get_pos()
+        if get_distance >= 2.5:
+            pos_change = get_distance()
+            get_speed()
+            get_angle()
 #------------------------------------------------
