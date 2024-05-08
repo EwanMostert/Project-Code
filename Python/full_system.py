@@ -45,6 +45,11 @@ motor1_rev = PWMOutputDevice(8)
 motor2_fwd = PWMOutputDevice(7)
 motor2_rev = PWMOutputDevice(1)
 
+motor1_fwd.frequency = 10000
+motor1_rev.frequency = 10000
+motor2_fwd.frequency = 10000
+motor2_rev.frequency = 10000
+
 D = 0
 d_1 = 0
 d_2 = 0
@@ -208,6 +213,9 @@ def send_photo():
 
 #function to get position from GPS
 def get_pos():
+    global uart_connected
+    global pos_x_new, pos_y_new
+    global pos_x_old, pos_y_old
     if uart_connected == False:
         try:
             ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
@@ -242,6 +250,9 @@ def calc_distance(pos_x_2,pos_y_2,pos_x_1,pos_y_1):
     return result
 
 def calc_speed():
+    global speed
+    global pos_change
+    global time_new, time_old
     speed = pos_change / (time_new - time_old)
 
 def calc_angle(pos_x_2,pos_y_2,pos_x_1,pos_y_1):
@@ -249,6 +260,9 @@ def calc_angle(pos_x_2,pos_y_2,pos_x_1,pos_y_1):
     return result
 
 def calc_error():
+    global dist_err, angle_err
+    global angle
+    global goal_x,goal_y,pos_x_new,pos_y_new
     dist_err = calc_distance(goal_x,goal_y,pos_x_new,pos_y_new)
     angle_err = angle - calc_angle(goal_x,goal_y,pos_x_new,pos_y_new)
 
@@ -257,15 +271,20 @@ def calc_error():
 
 #Actuation functions:
 def set_motorspeed():
+    global dist_err
+    global D
+    global d_1, d_2
     if dist_err > 5:
-        D = 100
+        D = 1
     else:
-        D = 50
+        D = 0.5
     d_1 *= D
     d_2 *= D
 
 def ramp_up():
-    for i in range(100,-1,-1):
+    global D
+    global d_1, d_2
+    for i in range(0, 1.01, 0.01):
         D = i
         d_1 = D
         d_2 = D
@@ -273,26 +292,34 @@ def ramp_up():
 
 
 def ramp_down():
-    for i in range(100,-1,-1):
+    global D
+    global d_1, d_2
+    for i in range(1, -0.01, -0.01):
         D = i
         d_1 = D
         d_2 = D
         activate_motors()
 
 def set_motordirection():
+    global d_1, d_2
+    global angle_err
     d_1 = cos(angle_err)
     d_2 = sin(angle_err)
 
 def rotate():
+    global goal_angle
+    global angle
+    global d_1, d_2
+    global ROTATION_PERIOD
     angle_change = goal_angle - angle
     if angle_change > 180:
         angle_change -= 360
         if angle_change > 0:
-            d_1 = -50
-            d_2 = 50
+            d_1 = -0.5
+            d_2 = 0.5
         else:
-            d_1 = 50
-            d_2 = -50
+            d_1 = 0.5
+            d_2 = -0.5
     activate_motors()
     sleep_time = angle_change / 360 * ROTATION_PERIOD
     time.sleep(sleep_time)
@@ -302,19 +329,30 @@ def rotate():
 
 
 def activate_motors():
+    global motor1_fwd, motor1_rev
+    global motor2_fwd, motor2_rev
+    global d_1, d_2
     if d_1 > 0:
-        motor1_fwd_pwm.ChangeDutyCycle(d_1)
-        motor1_rev_pwm.ChangeDutyCycle(0)
+        motor1_fwd.value = d_1
+        motor1_rev.value = 0
+        # motor1_fwd_pwm.ChangeDutyCycle(d_1)
+        # motor1_rev_pwm.ChangeDutyCycle(0)
     elif d_1 < 0:
-        motor1_fwd_pwm.ChangeDutyCycle(0)
-        motor1_rev_pwm.ChangeDutyCycle(-1*d_1)
+        motor1_fwd.value = 0
+        motor1_rev.value = -1*d_1
+        # motor1_fwd_pwm.ChangeDutyCycle(0)
+        # motor1_rev_pwm.ChangeDutyCycle(-1*d_1)
 
     if d_2 > 0:
-        motor2_fwd_pwm.ChangeDutyCycle(d_2)
-        motor2_rev_pwm.ChangeDutyCycle(0)
+        motor2_fwd.value = d_2
+        motor2_rev.value = 0
+        # motor2_fwd_pwm.ChangeDutyCycle(d_2)
+        # motor2_rev_pwm.ChangeDutyCycle(0)
     elif d_2 < 0:
-        motor2_fwd_pwm.ChangeDutyCycle(0)
-        motor2_rev_pwm.ChangeDutyCycle(-1*d_2)
+        motor2_fwd.value = 0
+        motor2_rev.value = -1*d_2
+        # motor2_fwd_pwm.ChangeDutyCycle(0)
+        # motor2_rev_pwm.ChangeDutyCycle(-1*d_2)
     return    
 
 #------------------------------------------------
@@ -322,6 +360,8 @@ def activate_motors():
 
 #System setup:
 running = True
+in_transit = False
+at_goal = False
 # print("Let's begin")
 start_time = time.time()
 #------------------------------------------------
@@ -333,16 +373,30 @@ bt_running.set()
 bt_thread = threading.Thread(target=try_bt_connect, args=(bt_running,))
 bt_thread.start()
 
+in_transit = True
+ramp_up()
+
 while (running == True):
-    # get_pos()
-    # if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.5:
-    #     pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
-    #     calc_speed()
-    #     angle = calc_angle(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
-    if bt_connected == True:
+    get_pos()
+    if in_transit == True:
+        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.5:
+            pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
+            calc_speed()
+            angle = calc_angle(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
+            calc_error()
+            if dist_err <= 3:
+                in_transit = False
+                ramp_down()
+            
+    if in_transit == False and at_goal == False:
+        rotate()
+        calc_error()
+        if angle_err <= 10:
+            at_goal = True
+
+    if bt_connected == True and at_goal == True:
         take_photo()
         send_photo()
-    time.sleep(10)
 
 bt_running.clear()  
     
