@@ -2,7 +2,7 @@
 
 import random
 import socket, select
-from time import gmtime, strftime
+from time import gmtime, strftime, sleep
 from random import randint
 import logging
 
@@ -27,25 +27,32 @@ while True:
         logging.info(f"Got new connection from {addr}")
         connected = True
     
-    try:
-        myfile = open(basename % imgcounter, 'w+b')
-        imgcounter += 1
-        data = client.recv(1024)
-        txt = data.decode()
-        print(txt)
-        if txt.__contains__("sending data"):
-            message = (b'go ahead')
-            client.send(message)
-            data = client.recv(4096)
-            while data :
-                myfile.write(data)
+    if connected == True and addr != None:
+        try:
+            data = client.recv(1024)
+            if data != None:
+                myfile = open(basename % imgcounter, 'w+b')
+                imgcounter += 1
+                txt = data.decode()
+            if txt.__contains__("sending data"):
+                message = (b'go ahead')
+                client.send(message)
                 data = client.recv(4096)
-            myfile.close()
-            print("File received")
+                while data :
+                    myfile.write(data)
+                    data = client.recv(4096)
+                myfile.close()
+                print("File received")
             client.detach()
+            addr = None
             connected = False
+            
   
-    except: 
-        print("Client error")
-        client.detach()
-        connected = False
+        except:
+            print("Client error")
+            client.detach()
+            addr = None
+            connected = False
+    data = None
+    txt = ""
+    sleep(2.0)
