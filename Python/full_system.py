@@ -8,6 +8,7 @@ import serial
 import string
 import pynmea2
 import threading
+import logging
 
 from gpiozero import PWMOutputDevice
 from math import *
@@ -108,7 +109,6 @@ angle_err = 0
 
 time_new = 0
 time_old = 0
-
 #NOTE: Latitude will be pos_y and longitude will be pos_x. Speed and angle will be calculated from changes in position.
 #------------------------------------------------
 
@@ -290,7 +290,6 @@ def ramp_up():
         d_2 = D
         activate_motors()
 
-
 def ramp_down():
     global D
     global d_1, d_2
@@ -358,6 +357,26 @@ def activate_motors():
 #------------------------------------------------
 
 
+#Logging functionality:
+def do_logging(log_running):
+    while log_running.is_set():
+        log_msg = generate_log_msg()
+        logger.debug(log_msg)
+        sleep(2.0)
+    return
+
+def generate_log_msg():
+    global pos_x_new, pos_y_new
+    global speed, angle
+    global dist_err, angle_err
+    global d_1, d_2
+    
+    log_msg = str(round(pos_x_new,5)) + "," + str(round(pos_y_new,5)) + "," + str(round(speed,3)) + "," + str(round(angle,1)) + "," + str(dist_err) + "," + str(round(angle_err,1)) + "," + str(d_1) + "," + str(d_2)
+    
+    return log_msg
+#------------------------------------------------
+
+
 #System setup:
 running = True
 in_transit = False
@@ -372,6 +391,16 @@ bt_running = threading.Event()
 bt_running.set()
 bt_thread = threading.Thread(target=try_bt_connect, args=(bt_running,))
 bt_thread.start()
+
+
+logging.basicConfig(filename="logging.log",format='%(asctime)s %(message)s',filemode='w')
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+log_running = threading.Event()
+log_running.set()
+log_thread = threading.Thread(target=do_logging, args=(log_running,))
+log_thread.start()
 
 in_transit = True
 ramp_up()
@@ -400,5 +429,6 @@ while (running == True):
         send_photo()
 
 bt_running.clear()  
+log_running.clear()
     
 #------------------------------------------------
