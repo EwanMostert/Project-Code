@@ -284,8 +284,8 @@ def set_motorspeed():
 def ramp_up():
     global D
     global d_1, d_2
-    for i in range(0, 1.01, 0.01):
-        D = i
+    for i in range(0, 101, 1):
+        D = i / 100
         d_1 = D
         d_2 = D
         activate_motors()
@@ -294,8 +294,8 @@ def ramp_up():
 def ramp_down():
     global D
     global d_1, d_2
-    for i in range(1, -0.01, -0.01):
-        D = i
+    for i in range(100, -1, -1):
+        D = i / 100
         d_1 = D
         d_2 = D
         activate_motors()
@@ -394,7 +394,8 @@ while (running == True):
         if angle_err <= 10:
             at_goal = True
 
-    if bt_connected == True and at_goal == True:
+    # if bt_connected == True and at_goal == True:
+    if bt_connected == True:
         take_photo()
         send_photo()
 
