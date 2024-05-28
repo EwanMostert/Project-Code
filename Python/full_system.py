@@ -94,12 +94,12 @@ pos_x_old = 0
 pos_y_old = 0
 pos_change = 0
 
-start_x = 0
-start_y = 0
+start_x = -33.933095
+start_y = 18.873023
 
-goal_x = 0
-goal_y = 0
-goal_angle = 0
+goal_x = -33.931180
+goal_y = 18.875539
+goal_angle = 90
 
 speed = 0
 angle = 90
