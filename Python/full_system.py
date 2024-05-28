@@ -393,7 +393,7 @@ bt_thread = threading.Thread(target=try_bt_connect, args=(bt_running,))
 bt_thread.start()
 
 
-logging.basicConfig(filename="logging.log",format='%(asctime)s %(message)s',filemode='w')
+logging.basicConfig(filename="logging.txt",format='%(asctime)s %(message)s',filemode='w')
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
@@ -424,7 +424,7 @@ while (running == True):
             at_goal = True
 
     # if bt_connected == True and at_goal == True:
-    if bt_connected == True:
+    if at_goal == True and bt_connected == True:
         take_photo()
         send_photo()
 
