@@ -253,7 +253,10 @@ def calc_speed():
     global speed
     global pos_change
     global time_new, time_old
-    speed = pos_change / (time_new - time_old)
+    if time_new - time_old == 0:
+        speed = 0
+    else:
+        speed = pos_change / (time_new - time_old)
 
 def calc_angle(pos_x_2,pos_y_2,pos_x_1,pos_y_1):
     result = degrees(atan((pos_x_2 - pos_x_1)/(pos_y_2 - pos_y_1)))
@@ -362,7 +365,7 @@ def do_logging(log_running):
     while log_running.is_set():
         log_msg = generate_log_msg()
         logger.debug(log_msg)
-        sleep(2.0)
+        time.sleep(2.0)
     return
 
 def generate_log_msg():
@@ -381,6 +384,8 @@ def generate_log_msg():
 running = True
 in_transit = False
 at_goal = False
+pos_x_new = start_x
+pos_y_new = start_y
 # print("Let's begin")
 start_time = time.time()
 #------------------------------------------------
@@ -407,12 +412,14 @@ ramp_up()
 
 while (running == True):
     get_pos()
+    print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
+    print("Goal is at" + str(goal_x) + ", " + str(goal_y))
     if in_transit == True:
         if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.5:
             pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
             calc_speed()
             angle = calc_angle(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
-            calc_error()
+            calc_error()            
             if dist_err <= 3:
                 in_transit = False
                 ramp_down()
