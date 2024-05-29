@@ -19,6 +19,7 @@ from picamera2 import *
 
 
 #network setup
+# port = "5C:80:B6:30:A9:0C"
 port = "34:F3:9A:CA:76:E0"
 bt_connected = False
 server_sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
@@ -238,7 +239,7 @@ def get_pos():
         pos_y_new = newmsg.latitude
         pos_x_new = newmsg.longitude
         gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
-        print(gps)
+        # print(gps)
 #------------------------------------------------
 
 
@@ -412,8 +413,8 @@ ramp_up()
 
 while (running == True):
     get_pos()
-    print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
-    print("Goal is at" + str(goal_x) + ", " + str(goal_y))
+    # print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
+    # print("Goal is at" + str(goal_x) + ", " + str(goal_y))
     if in_transit == True:
         if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.5:
             pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
@@ -431,7 +432,7 @@ while (running == True):
             at_goal = True
 
     # if bt_connected == True and at_goal == True:
-    if at_goal == True and bt_connected == True:
+    if  bt_connected == True:
         take_photo()
         send_photo()
 
