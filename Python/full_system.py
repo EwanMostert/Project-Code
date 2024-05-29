@@ -95,11 +95,11 @@ pos_x_old = 0
 pos_y_old = 0
 pos_change = 0
 
-start_x = -33.933095
-start_y = 18.873023
+start_x = -33.930239
+start_y = 18.854129
 
-goal_x = -33.931180
-goal_y = 18.875539
+goal_x = -33.929906
+goal_y = 18.855207
 goal_angle = 90
 
 speed = 0
@@ -220,7 +220,7 @@ def get_pos():
     global pos_x_old, pos_y_old
     if uart_connected == False:
         try:
-            ser = serial.Serial('/dev/ttyAMA0', 9600, timeout=1,parity=serial.PARITY_NONE)
+            ser = serial.Serial('/dev/ttyAMA0', 9600, timeout=5)
             dataout = pynmea2.NMEAStreamReader()
             uart_connected = True
         except Exception as error:
@@ -232,7 +232,7 @@ def get_pos():
         print("Could not read from serial channel", error)
         return
 
-    if newdata[0:10].__contains__("$GPRMC"):
+    if newdata.__contains__("$GPRMC"):
         newmsg = pynmea2.parse(newdata)
         pos_x_old = pos_x_new
         pos_y_old = pos_y_new
@@ -248,7 +248,7 @@ def calc_distance(pos_x_2,pos_y_2,pos_x_1,pos_y_1):
     angle_x = pos_x_2 - pos_x_1
     angle_y = pos_y_2 - pos_y_1
     angle_change = radians(sqrt(pow(angle_x,2) + pow(angle_y,2)))
-    result = angle_change * 6371 * 1000
+    result = math.abs(angle_change) * 6371 * 1000
     return result
 
 def calc_speed():
@@ -437,6 +437,5 @@ while (running == True):
         send_photo()
 
 bt_running.clear()  
-log_running.clear()
-    
+log_running.clear()    
 #------------------------------------------------
