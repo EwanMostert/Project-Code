@@ -214,20 +214,21 @@ def send_photo():
 #function to get position from GPS
 def get_pos():
     global uart_connected
+    global ser
     global pos_x_new, pos_y_new
     global pos_x_old, pos_y_old
     if uart_connected == False:
         try:
-            ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
+            ser = serial.Serial('/dev/ttyAMA0', 9600, timeout=1,parity=serial.PARITY_NONE)
             dataout = pynmea2.NMEAStreamReader()
             uart_connected = True
-        except:
-            print("Could not establish serial connection") 
+        except Exception as error:
+            print("Could not establish serial connection", error) 
             return 
     try:
         newdata = ser.readline().decode()
-    except:
-        print("Could not read from serial channel")
+    except Exception as error:
+        print("Could not read from serial channel", error)
         return
 
     if newdata[0:10].__contains__("$GPRMC"):
@@ -396,7 +397,6 @@ bt_running = threading.Event()
 bt_running.set()
 bt_thread = threading.Thread(target=try_bt_connect, args=(bt_running,))
 bt_thread.start()
-
 
 logging.basicConfig(filename="logging.txt",format='%(asctime)s %(message)s',filemode='w')
 logger = logging.getLogger()
