@@ -432,7 +432,7 @@ while (running == True):
             at_goal = True
 
     # if bt_connected == True and at_goal == True:
-    if  bt_connected == True:
+    if at_goal == True and bt_connected == True:
         take_photo()
         send_photo()
 
