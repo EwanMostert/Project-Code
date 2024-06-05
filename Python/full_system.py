@@ -95,15 +95,16 @@ pos_x_old = 0
 pos_y_old = 0
 pos_change = 0
 
-start_x = -33.930239
-start_y = 18.854129
+start_y = -33.930337
+start_x = 18.85417
 
-goal_x = -33.929906
-goal_y = 18.855207
-goal_angle = 90
+goal_y = -33.930015
+goal_x = 18.855235
+goal_angle = -90
 
 speed = 0
 angle = 90
+alpha = 0
 
 dist_err = 0
 angle_err = 0
@@ -122,8 +123,9 @@ try:
     ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
     dataout = pynmea2.NMEAStreamReader()
     uart_connected = True
-except:
-    print("Could not establish serial connection")    
+except Exception as error:
+    print("Could not establish serial connection", error)
+    uart_connected = False  
 #------------------------------------------------
 
 
@@ -218,28 +220,34 @@ def get_pos():
     global ser
     global pos_x_new, pos_y_new
     global pos_x_old, pos_y_old
+    global time_new, time_old
+    global logger
+    
     if uart_connected == False:
         try:
-            ser = serial.Serial('/dev/ttyAMA0', 9600, timeout=5)
+            ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
             dataout = pynmea2.NMEAStreamReader()
-            uart_connected = True
+            uart_connected = True        
+            logger.debug("UART connected")
         except Exception as error:
-            print("Could not establish serial connection", error) 
-            return 
-    try:
-        newdata = ser.readline().decode()
-    except Exception as error:
-        print("Could not read from serial channel", error)
-        return
-
-    if newdata.__contains__("$GPRMC"):
-        newmsg = pynmea2.parse(newdata)
-        pos_x_old = pos_x_new
-        pos_y_old = pos_y_new
-        pos_y_new = newmsg.latitude
-        pos_x_new = newmsg.longitude
-        gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
-        # print(gps)
+            logger.debug(error)
+            uart_connected = False    
+    else:
+        try:
+            newdata = ser.readline().decode()    
+            if newdata.__contains__("$GPRMC"):
+                newmsg = pynmea2.parse(newdata)
+                pos_x_old = pos_x_new
+                pos_y_old = pos_y_new
+                time_old = time_new
+                time_new = time.time()
+                pos_y_new = newmsg.latitude
+                pos_x_new = newmsg.longitude
+                gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
+                # print(gps)
+        except Exception as error:
+            logger.debug(error)
+            uart_connected = False
 #------------------------------------------------
 
 
@@ -248,14 +256,14 @@ def calc_distance(pos_x_2,pos_y_2,pos_x_1,pos_y_1):
     angle_x = pos_x_2 - pos_x_1
     angle_y = pos_y_2 - pos_y_1
     angle_change = radians(sqrt(pow(angle_x,2) + pow(angle_y,2)))
-    result = math.abs(angle_change) * 6371 * 1000
+    result = angle_change * 6371 * 1000
     return result
 
 def calc_speed():
     global speed
     global pos_change
     global time_new, time_old
-    if time_new - time_old == 0:
+    if time_new == 0:
         speed = 0
     else:
         speed = pos_change / (time_new - time_old)
@@ -268,24 +276,25 @@ def calc_error():
     global dist_err, angle_err
     global angle
     global goal_x,goal_y,pos_x_new,pos_y_new
+    global alpha
+    
     dist_err = calc_distance(goal_x,goal_y,pos_x_new,pos_y_new)
     angle_err = angle - calc_angle(goal_x,goal_y,pos_x_new,pos_y_new)
-
+    a = sin(radians(angle_err)) / (1 - cos(radians(angle_err)))
+    alpha = degrees(atan(a))
 #------------------------------------------------
 
 
 #Actuation functions:
 def set_motorspeed():
     global dist_err
-    global D
     global d_1, d_2
-    if dist_err > 5:
-        D = 1
-    else:
-        D = 0.5
-    d_1 *= D
-    d_2 *= D
-
+    if dist_err <= 10:
+        if d_1 > 0.5:
+            d_1 = 0.5
+        if d_2 > 0.5:
+            d_2 = 0.5
+    
 def ramp_up():
     global D
     global d_1, d_2
@@ -306,9 +315,21 @@ def ramp_down():
 
 def set_motordirection():
     global d_1, d_2
-    global angle_err
-    d_1 = cos(angle_err)
-    d_2 = sin(angle_err)
+    global alpha
+    
+    if alpha > 0:
+        alpha = 90 - alpha
+    if alpha < 0:
+        alpha = -90 - alpha
+        
+    chng_rate = sin(radians(alpha))
+    
+    if alpha < 0:
+        d_1 = 1 + chng_rate
+        d_2 = 1
+    if alpha > 0:
+        d_1 = 1
+        d_2 = 1 - chng_rate
 
 def rotate():
     global goal_angle
@@ -330,7 +351,6 @@ def rotate():
     d_1 = 0
     d_2 = 0
     activate_motors()
-
 
 def activate_motors():
     global motor1_fwd, motor1_rev
@@ -356,29 +376,29 @@ def activate_motors():
         motor2_fwd.value = 0
         motor2_rev.value = -1*d_2
         # motor2_fwd_pwm.ChangeDutyCycle(0)
-        # motor2_rev_pwm.ChangeDutyCycle(-1*d_2)
-    return    
+        # motor2_rev_pwm.ChangeDutyCycle(-1*d_2)    
 
 #------------------------------------------------
 
 
 #Logging functionality:
 def do_logging(log_running):
+    global logger
     while log_running.is_set():
         log_msg = generate_log_msg()
         logger.debug(log_msg)
-        time.sleep(2.0)
+        time.sleep(1.0)
     return
 
 def generate_log_msg():
     global pos_x_new, pos_y_new
-    global speed, angle
-    global dist_err, angle_err
+    global speed, angle, alpha
     global d_1, d_2
+    global dist_err, angle_err
     
-    log_msg = str(round(pos_x_new,5)) + "," + str(round(pos_y_new,5)) + "," + str(round(speed,3)) + "," + str(round(angle,1)) + "," + str(dist_err) + "," + str(round(angle_err,1)) + "," + str(d_1) + "," + str(d_2)
+    msg = str(round(pos_y_new,5)) + "," + str(round(pos_x_new,5)) + "," + str(round(speed,3)) + "," + str(round(angle)) + "," + str(dist_err) + "," + str(round(angle_err)) + "," + str(round(alpha,2)) + "," + str(d_1) + "," + str(d_2)
     
-    return log_msg
+    return msg
 #------------------------------------------------
 
 
@@ -388,8 +408,12 @@ in_transit = False
 at_goal = False
 pos_x_new = start_x
 pos_y_new = start_y
-# print("Let's begin")
+pos_x_old = start_x
+pos_y_old = start_y
+calc_error()
 start_time = time.time()
+time_new = start_time
+time_old = start_time
 #------------------------------------------------
 
 
@@ -399,8 +423,8 @@ bt_running.set()
 bt_thread = threading.Thread(target=try_bt_connect, args=(bt_running,))
 bt_thread.start()
 
-logging.basicConfig(filename="logging.txt",format='%(asctime)s %(message)s',filemode='w')
-logger = logging.getLogger()
+logging.basicConfig(filename="/home/proj448/Documents/GitHub/Project-Code/Python/logging.txt",format='%(asctime)s %(message)s',filemode='a',level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 log_running = threading.Event()
@@ -416,15 +440,19 @@ while (running == True):
     # print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
     # print("Goal is at" + str(goal_x) + ", " + str(goal_y))
     if in_transit == True:
-        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.5:
+        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) > 2.5:
             pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
             calc_speed()
             angle = calc_angle(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
-            calc_error()            
+            calc_error()  
+            
+            set_motordirection()
+            set_motorspeed()   
+            activate_motors()       
             if dist_err <= 3:
                 in_transit = False
-                ramp_down()
-            
+                ramp_down() 
+                
     if in_transit == False and at_goal == False:
         rotate()
         calc_error()
@@ -435,6 +463,7 @@ while (running == True):
     if at_goal == True and bt_connected == True:
         take_photo()
         send_photo()
+        running = False
 
 bt_running.clear()  
 log_running.clear()    
