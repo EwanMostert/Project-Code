@@ -95,15 +95,15 @@ pos_x_old = 0
 pos_y_old = 0
 pos_change = 0
 
-start_y = -33.930337
-start_x = 18.85417
+start_y = -33.929687
+start_x = 18.85424
 
 goal_y = -33.930015
 goal_x = 18.855235
 goal_angle = -90
 
 speed = 0
-angle = 90
+angle = -90
 alpha = 0
 
 dist_err = 0
