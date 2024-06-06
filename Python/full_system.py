@@ -44,8 +44,8 @@ def try_bt_connect(bt_running):
 #motor control setup
 motor1_fwd = PWMOutputDevice(25)
 motor1_rev = PWMOutputDevice(8)
-motor2_fwd = PWMOutputDevice(7)
-motor2_rev = PWMOutputDevice(1)
+motor2_fwd = PWMOutputDevice(1) #Right motor prop is mirror of left motor prop
+motor2_rev = PWMOutputDevice(7)
 
 motor1_fwd.frequency = 10000
 motor1_rev.frequency = 10000
@@ -440,7 +440,7 @@ while (running == True):
     # print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
     # print("Goal is at" + str(goal_x) + ", " + str(goal_y))
     if in_transit == True:
-        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) > 2.5:
+        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.0:
             pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
             calc_speed()
             angle = calc_angle(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
