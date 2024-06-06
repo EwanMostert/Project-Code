@@ -395,8 +395,8 @@ def generate_log_msg():
     global speed, angle, alpha
     global d_1, d_2
     global dist_err, angle_err
-    
-    msg = str(round(pos_y_new,5)) + "," + str(round(pos_x_new,5)) + "," + str(round(speed,3)) + "," + str(round(angle)) + "," + str(dist_err) + "," + str(round(angle_err)) + "," + str(round(alpha,2)) + "," + str(d_1) + "," + str(d_2)
+
+    msg = str(round(pos_y_new,5)) + "," + str(round(pos_x_new,5)) + "," + str(round(speed,3)) + "," + str(round(angle)) + "," + str(round(dist_err)) + "," + str(round(angle_err)) + "," + str(round(alpha,2)) + "," + str(round(d_1,4)) + "," + str(round(d_2,4))
     
     return msg
 #------------------------------------------------
