@@ -249,7 +249,7 @@ def get_pos(pos_running):
             except Exception as error:
                 # logger.debug(error)
                 uart_connected = False
-        time.sleep(1.0)
+        time.sleep(0.001)
     return
 #------------------------------------------------
 
