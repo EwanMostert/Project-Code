@@ -448,7 +448,7 @@ while (running == True):
     # print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
     # print("Goal is at" + str(goal_x) + ", " + str(goal_y))
     if in_transit == True:
-        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 2.0:
+        if calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old) >= 1:
             pos_change = calc_distance(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
             calc_speed()
             angle = calc_angle(pos_x_new,pos_y_new,pos_x_old,pos_y_old)
@@ -457,7 +457,7 @@ while (running == True):
             set_motordirection()
             set_motorspeed()   
             activate_motors()       
-            if dist_err <= 3:
+            if dist_err <= 5:
                 in_transit = False
                 ramp_down()
                 rotate()
