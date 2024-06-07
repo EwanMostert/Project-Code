@@ -215,7 +215,7 @@ def send_photo():
 
 
 #function to get position from GPS
-def get_pos():
+def get_pos(pos_running):
     global uart_connected
     global ser
     global pos_x_new, pos_y_new
@@ -223,31 +223,34 @@ def get_pos():
     global time_new, time_old
     global logger
     
-    if uart_connected == False:
-        try:
-            ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
-            dataout = pynmea2.NMEAStreamReader()
-            uart_connected = True        
-            logger.debug("UART connected")
-        except Exception as error:
-            logger.debug(error)
-            uart_connected = False    
-    else:
-        try:
-            newdata = ser.readline().decode()    
-            if newdata.__contains__("$GPRMC"):
-                newmsg = pynmea2.parse(newdata)
-                pos_x_old = pos_x_new
-                pos_y_old = pos_y_new
-                time_old = time_new
-                time_new = time.time()
-                pos_y_new = newmsg.latitude
-                pos_x_new = newmsg.longitude
-                gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
-                # print(gps)
-        except Exception as error:
-            # logger.debug(error)
-            uart_connected = False
+    while pos_running.is_set():        
+        if uart_connected == False:
+            try:
+                ser = serial.Serial("/dev/ttyAMA0", 9600, timeout=1)
+                dataout = pynmea2.NMEAStreamReader()
+                uart_connected = True        
+                logger.debug("UART connected")
+            except Exception as error:
+                # logger.debug(error)
+                uart_connected = False    
+        else:
+            try:
+                newdata = ser.readline().decode()    
+                if newdata.__contains__("$GPRMC"):
+                    newmsg = pynmea2.parse(newdata)
+                    pos_x_old = pos_x_new
+                    pos_y_old = pos_y_new
+                    time_old = time_new
+                    time_new = time.time()
+                    pos_y_new = newmsg.latitude
+                    pos_x_new = newmsg.longitude
+                    gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
+                    # print(gps)
+            except Exception as error:
+                # logger.debug(error)
+                uart_connected = False
+        time.sleep(1.0)
+    return
 #------------------------------------------------
 
 
@@ -432,11 +435,16 @@ log_running.set()
 log_thread = threading.Thread(target=do_logging, args=(log_running,))
 log_thread.start()
 
+pos_running = threading.Event()
+pos_running.set()
+pos_thread = threading.Thread(target=get_pos, args=(pos_running,))
+pos_thread.start()
+
 in_transit = True
 ramp_up()
 
 while (running == True):
-    get_pos()
+    # get_pos()
     # print("I am at" + str(pos_x_new) + ", " + str(pos_y_new))
     # print("Goal is at" + str(goal_x) + ", " + str(goal_y))
     if in_transit == True:
@@ -451,13 +459,15 @@ while (running == True):
             activate_motors()       
             if dist_err <= 3:
                 in_transit = False
-                ramp_down() 
+                ramp_down()
+                rotate()
+                at_goal = True
                 
-    if in_transit == False and at_goal == False:
-        rotate()
-        calc_error()
-        if angle_err <= 10:
-            at_goal = True
+    # if in_transit == False and at_goal == False:
+    #     rotate()
+    #     calc_error()
+    #     if angle_err <= 10:
+    #         at_goal = True
 
     # if bt_connected == True and at_goal == True:
     if at_goal == True and bt_connected == True:
