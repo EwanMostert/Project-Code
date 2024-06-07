@@ -246,7 +246,7 @@ def get_pos():
                 gps = "Latitude =" + str(pos_y_new) + " and Longitude =" + str(pos_x_new)
                 # print(gps)
         except Exception as error:
-            logger.debug(error)
+            # logger.debug(error)
             uart_connected = False
 #------------------------------------------------
 
