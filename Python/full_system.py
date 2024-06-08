@@ -95,11 +95,11 @@ pos_x_old = 0
 pos_y_old = 0
 pos_change = 0
 
-start_y = -33.929687
-start_x = 18.85424
+start_y = -33.93017
+start_x = 18.8548
 
-goal_y = -33.930015
-goal_x = 18.855235
+goal_y = -33.930035
+goal_x = 18.855208
 goal_angle = -90
 
 speed = 0
@@ -470,10 +470,9 @@ while (running == True):
     #         at_goal = True
 
     # if bt_connected == True and at_goal == True:
-    if at_goal == True and bt_connected == True:
+    if at_goal == True:
         take_photo()
         send_photo()
-        running = False
 
 bt_running.clear()  
 log_running.clear()    
