@@ -457,20 +457,20 @@ while (running == True):
             set_motordirection()
             set_motorspeed()   
             activate_motors()       
-            if dist_err <= 5:
+            if dist_err <= 3:
                 in_transit = False
                 ramp_down()
                 rotate()
                 at_goal = True
                 
-    # if in_transit == False and at_goal == False:
-    #     rotate()
-    #     calc_error()
-    #     if angle_err <= 10:
-    #         at_goal = True
+    if in_transit == False and at_goal == False:
+        rotate()
+        calc_error()
+        if angle_err <= 10:
+            at_goal = True
 
-    # if bt_connected == True and at_goal == True:
-    if at_goal == True:
+    if bt_connected == True and at_goal == True:
+    # if at_goal == True:
         take_photo()
         send_photo()
 
